@@ -1,0 +1,16 @@
+# Keeps espeak-ng's native build path short.
+#
+# `piper-rs` -> `espeak-rs-sys` vendors espeak-ng and builds it with CMake.
+# espeak-ng hardcodes `N_PATH_HOME` at 160 bytes (src/libespeak-ng/speech.h)
+# and truncates the phondata filename buffer at `sizeof(path_home)+20`.
+# When the build directory path is long, `phsource/vwl_en_us_nyc/a_raised`
+# gets truncated to `a_rais` and the build dies with:
+#   Failed to open: '.../phsource/vwl_en_us_nyc/a_rais'
+# Upstream fixed this only for Linux (espeak-ng PR #2220), so macOS is still
+# affected. See espeak-ng issue #2048 and piper-rs issue #20.
+#
+# Fix: keep the target dir short. Budget: the full path to
+# `debug/build/espeak-rs-sys-<hash>/out/build/espeak-ng-data` must stay <= ~130 chars.
+
+[build]
+target-dir = "/tmp/vx"

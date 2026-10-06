@@ -1,0 +1,47 @@
+[package]
+name = "voxlocal"
+version = "0.1.0"
+edition = "2021"
+description = "100% local, low-latency voice agent: mic -> Whisper -> RAG -> SmolLM2 -> Piper -> speakers"
+
+[dependencies]
+# --- ML / inference ---
+# candle 0.11 has NO tokenizers dep of its own; we pick the tokenizer crate.
+# "metal" enables GPU inference for MiniLM + SmolLM2 on Apple Silicon.
+candle-core = { version = "0.11", features = ["metal"] }
+candle-nn = { version = "0.11", features = ["metal"] }
+candle-transformers = { version = "0.11", features = ["metal"] }
+tokenizers = { version = "0.22", default-features = false, features = ["onig"] }
+
+# --- STT ---
+# whisper-rs vendors whisper.cpp and builds it with CMake (requires `cmake` on PATH).
+# "metal" enables GGML_METAL for GPU-accelerated Whisper on Apple Silicon.
+whisper-rs = { version = "0.16", features = ["metal"] }
+
+# --- TTS ---
+# piper-rs pulls in ort (ONNX Runtime) + espeak-rs (phonemization).
+piper-rs = "0.2"
+
+# --- Audio I/O ---
+# NOTE: cpal is pinned to 0.17 to match rodio 0.22's own cpal dependency,
+# so only ONE copy of cpal (and one CoreAudio backend) ends up in the graph.
+cpal = "0.17"
+rodio = "0.22"
+# Used only to reinterpret cpal's raw callback bytes as i16.
+bytemuck = "1"
+
+# --- Text ---
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# --- Misc ---
+anyhow = "1"
+
+[profile.release]
+# Optimize the candle matmuls hard; this is the single biggest win for latency.
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+# Keep frame pointers off for the whisper/orchestration code.
+panic = "unwind"
